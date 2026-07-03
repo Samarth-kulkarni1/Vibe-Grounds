@@ -40,24 +40,45 @@ const MoodRestaurantFinder = () => {
     loadFavorites();
   }, []);
 
-  const getUserLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setLocation({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          });
-        },
-        () => {
-          console.log('Geolocation error, using Bengaluru as default');
-          setLocation(defaultLocation);
+const getUserLocation = () => {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+
+        setLocation({ lat, lng });
+
+        try {
+          const res = await axios.get(
+            "https://api.geoapify.com/v1/geocode/reverse",
+            {
+              params: {
+                lat,
+                lon: lng,
+                apiKey: import.meta.env.VITE_GEOAPIFY_API_KEY,
+              },
+            }
+          );
+
+          if (res.data.features.length > 0) {
+            setCity(res.data.features[0].properties.city);
+          }
+        } catch (err) {
+          console.log("Couldn't fetch city");
         }
-      );
-    } else {
-      setLocation(defaultLocation);
-    }
-  };
+      },
+      () => {
+        console.log("Using default Bengaluru");
+        setLocation(defaultLocation);
+        setCity("Bengaluru");
+      }
+    );
+  } else {
+    setLocation(defaultLocation);
+    setCity("Bengaluru");
+  }
+};
 
   const loadFavorites = async () => {
     try {
